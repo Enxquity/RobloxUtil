@@ -29,10 +29,308 @@ local SoftClassRef      = PropertiesItems.Class:Clone()
 local SoftEntryRef      = PropertiesItems.Entry:Clone()
 
 do 
+    Properties.UIAspectRatioConstraint.AspectRatio = 0.84
     ExplorerContent.ClipsDescendants = true;
     ExplorerItems.Ancestor:Destroy(); PropertiesItems.Class:Destroy(); PropertiesItems.Entry:Destroy();
 end
 
+
+--[[
+##################################################################################################################################
+##################################################################################################################################
+##################################################################################################################################
+]]
+
+local PropertyHandlers = {}
+local PropertyWriters = {}
+
+do
+    PropertyHandlers.boolean = function(Object, Entry, Data)
+        local EntryValue = Entry.EntryValue
+
+        EntryValue.Value.Visible = false
+        EntryValue.Checkbox.Visible = true
+
+        local State = gethiddenproperty(Object, Data.Name)
+        EntryValue.Checkbox.Enabled.Visible = State
+    end
+
+    PropertyHandlers.string = function(Object, Entry, Data)
+        local Value = gethiddenproperty(Object, Data.Name)
+
+        Entry.EntryValue.Value.Visible = true
+        Entry.EntryValue.Checkbox.Visible = false
+        Entry.EntryValue.Value.Text = tostring(Value)
+    end
+
+    PropertyHandlers.number = function(Object, Entry, Data)
+        local Value = gethiddenproperty(Object, Data.Name)
+
+        Entry.EntryValue.Value.Visible = true
+        Entry.EntryValue.Checkbox.Visible = false
+        Entry.EntryValue.Value.Text = tostring(Value)
+    end
+
+    PropertyHandlers.float = PropertyHandlers.number
+    PropertyHandlers.double = PropertyHandlers.number
+    PropertyHandlers.int = PropertyHandlers.number
+
+    PropertyHandlers.Color3 = function(Object, Entry, Data)
+        local Value = gethiddenproperty(Object, Data.Name)
+
+        Entry.EntryValue.Value.Visible = true
+        Entry.EntryValue.Checkbox.Visible = false
+
+        Entry.EntryValue.Value.Text = string.format(
+            "[%d, %d, %d]",
+            Value.R * 255,
+            Value.G * 255,
+            Value.B * 255
+        )
+
+        local ColorDisplay = Entry.EntryValue:FindFirstChild("Color")
+        if ColorDisplay then
+            ColorDisplay.Visible = true
+            ColorDisplay.BackgroundColor3 = Value
+        end
+    end
+
+    PropertyHandlers.Vector3 = function(Object, Entry, Data)
+        local Value = gethiddenproperty(Object, Data.Name)
+
+        Entry.EntryValue.Value.Text = string.format(
+            "%.2f, %.2f, %.2f",
+            Value.X,
+            Value.Y,
+            Value.Z
+        )
+    end
+
+    PropertyHandlers.Vector2 = function(Object, Entry, Data)
+        local Value = gethiddenproperty(Object, Data.Name)
+
+        Entry.EntryValue.Value.Text = string.format(
+            "%.2f, %.2f",
+            Value.X,
+            Value.Y
+        )
+    end
+
+    PropertyHandlers.UDim2 = function(Object, Entry, Data)
+        local Value = gethiddenproperty(Object, Data.Name)
+
+        Entry.EntryValue.Value.Text = string.format(
+            "{%s, %s}, {%s, %s}",
+            Value.X.Scale,
+            Value.X.Offset,
+            Value.Y.Scale,
+            Value.Y.Offset
+        )
+    end
+
+    PropertyHandlers.CFrame = function(Object, Entry, Data)
+        local Value = gethiddenproperty(Object, Data.Name)
+        local Position = Value.Position
+
+        Entry.EntryValue.Value.Text = string.format(
+            "%.2f, %.2f, %.2f",
+            Position.X,
+            Position.Y,
+            Position.Z
+        )
+    end
+
+    PropertyHandlers.EnumItem = function(Object, Entry, Data)
+        local Value = gethiddenproperty(Object, Data.Name)
+
+        Entry.EntryValue.Value.Text = Value.Name
+    end
+
+    PropertyHandlers.Instance = function(Object, Entry, Data)
+        local Value = gethiddenproperty(Object, Data.Name)
+
+        if Value then
+            Entry.EntryValue.Value.Text = Value:GetFullName()
+        else
+            Entry.EntryValue.Value.Text = "nil"
+        end
+    end
+
+    PropertyHandlers.BrickColor = function(Object, Entry, Data)
+        local Value = gethiddenproperty(Object, Data.Name)
+
+        Entry.EntryValue.Value.Text = Value.Name
+        
+        local ColorDisplay = Entry.EntryValue:FindFirstChild("Color")
+        if ColorDisplay then
+            ColorDisplay.Visible = true
+            ColorDisplay.BackgroundColor3 = Value.Color
+        end
+    end
+
+    PropertyHandlers.Rect = function(Object, Entry, Data)
+        local Value = gethiddenproperty(Object, Data.Name)
+
+        Entry.EntryValue.Value.Text = string.format(
+            "%.0f, %.0f, %.0f, %.0f",
+            Value.Min.X,
+            Value.Min.Y,
+            Value.Max.X,
+            Value.Max.Y
+        )
+    end
+
+    PropertyHandlers.PhysicalProperties = function(Object, Entry, Data)
+        local Value = gethiddenproperty(Object, Data.Name)
+
+        if Value then
+            Entry.EntryValue.Value.Text = string.format(
+                "D:%s F:%s E:%s",
+                Value.Density,
+                Value.Friction,
+                Value.Elasticity
+            )
+        else
+            Entry.EntryValue.Value.Text = "nil"
+        end
+    end
+
+    PropertyHandlers.NumberSequence = function(Object, Entry, Data)
+        local Value = gethiddenproperty(Object, Data.Name)
+
+        Entry.EntryValue.Value.Text = tostring(#Value.Keypoints) .. " keypoints"
+    end
+
+    PropertyHandlers.ColorSequence = function(Object, Entry, Data)
+        local Value = gethiddenproperty(Object, Data.Name)
+
+        Entry.EntryValue.Value.Text = tostring(#Value.Keypoints) .. " keypoints"
+    end
+
+    PropertyHandlers.Axes = function(Object, Entry, Data)
+        Entry.EntryValue.Value.Text = tostring(gethiddenproperty(Object, Data.Name))
+    end
+
+    PropertyHandlers.Faces = function(Object, Entry, Data)
+        Entry.EntryValue.Value.Text = tostring(gethiddenproperty(Object, Data.Name))
+    end
+
+    PropertyHandlers.default = function(Object, Entry, Data)
+        local Value = gethiddenproperty(Object, Data.Name)
+
+        Entry.EntryValue.Value.Text = tostring(Value)
+    end
+
+    PropertyWriters.boolean = function(Object, Data, Entry)
+        local Enabled = Entry.EntryValue.Checkbox.Enabled.Visible
+
+        if Data.Read == false then
+            sethiddenproperty(Object, Data.Name, Enabled)
+        else
+            Object[Data.Name] = Enabled
+        end
+    end
+
+    PropertyWriters.string = function(Object, Data, Entry)
+        local Value = Entry.EntryValue.Value.Text
+
+        if Data.Read == false then
+            sethiddenproperty(Object, Data.Name, Value)
+        else
+            Object[Data.Name] = Value
+        end
+    end
+
+    PropertyWriters.number = function(Object, Data, Entry)
+        local Number = tonumber(Entry.EntryValue.Value.Text)
+        if not Number then
+            return
+        end
+
+        if Data.Read == false then
+            sethiddenproperty(Object, Data.Name, Number)
+        else
+            Object[Data.Name] = Number
+        end
+    end
+
+    PropertyWriters.float = PropertyWriters.number
+    PropertyWriters.double = PropertyWriters.number
+    PropertyWriters.int = PropertyWriters.number
+
+    PropertyWriters.Vector3 = function(Object, Data, Entry)
+        local Text = Entry.EntryValue.Value.Text
+
+        local X, Y, Z = Text:match("([^,]+),%s*([^,]+),%s*([^,]+)")
+        X, Y, Z = tonumber(X), tonumber(Y), tonumber(Z)
+
+        if not (X and Y and Z) then
+            return
+        end
+
+        local Value = Vector3.new(X, Y, Z)
+
+        if Data.Read == false then
+            sethiddenproperty(Object, Data.Name, Value)
+        else
+            Object[Data.Name] = Value
+        end
+    end
+
+    PropertyWriters.Color3 = function(Object, Data, Entry)
+        local Text = Entry.EntryValue.Value.Text
+
+        local R, G, B = Text:match("([^,]+),%s*([^,]+),%s*([^,]+)")
+        R, G, B = tonumber(R), tonumber(G), tonumber(B)
+
+        if not (R and G and B) then
+            return
+        end
+
+        local Value = Color3.fromRGB(R, G, B)
+
+        if Data.Read == false then
+            sethiddenproperty(Object, Data.Name, Value)
+        else
+            Object[Data.Name] = Value
+        end
+    end
+
+    PropertyWriters.EnumItem = function(Object, Data, Entry)
+        local EnumType = Object[Data.Name]
+
+        for _, Item in EnumType.EnumType:GetEnumItems() do
+            if Item.Name == Entry.EntryValue.Value.Text then
+                if Data.Read == false then
+                    sethiddenproperty(Object, Data.Name, Item)
+                else
+                    Object[Data.Name] = Item
+                end
+
+                break
+            end
+        end
+    end
+    
+    PropertyWriters.BrickColor = function(Object, Data, Entry)
+        local Text = Entry.EntryValue.Value.Text
+        local BrickCol = BrickColor.new(Text)
+
+        if BrickCol then
+            Object[Data.Name] = BrickCol
+        end
+    end
+
+    PropertyWriters.default = function(Object, Data, Entry)
+        local Value = Entry.EntryValue.Value.Text
+
+        if Data.Read == false then
+            sethiddenproperty(Object, Data.Name, Value)
+        else
+            Object[Data.Name] = Value
+        end
+    end
+end
 
 --[[
 ##################################################################################################################################
@@ -67,6 +365,9 @@ local PriorityHeaders = {
     "Transform",
     "Pivot",
     "Behavior",
+    "Control",
+    "Game",
+    "Jump Settings",
     "Collision",
     "Part",
     "Assembly",
@@ -85,6 +386,13 @@ local Selections = {}
 function ParseProperties(Properties)
 	local List = {}
 	for Index, Data in Properties do
+        if Data.Display["DeprecationMessage"] ~= nil then
+            continue
+        end
+        if Data.Permits["Read"] == nil and Data.Permits["Write"] == nil then
+            continue
+        end
+
 		local Category = Data.Display.Category
 		if not List[Category] then
 			List[Category] = {}
@@ -251,7 +559,7 @@ function GetVisibleNodes()
         end
     end
 
-    for _, ServiceName in ipairs(PriorityServices) do
+    for _, ServiceName in PriorityServices do
         local Service = game:GetService(ServiceName)
 
         if Nodes[Service] then
@@ -340,13 +648,26 @@ function RenderNodes()
 end
 
 function UpdateProperty(Object, Entry, Data)
-    local EntryValue = Entry.EntryValue
-    if Data.Datatype == "boolean" then
-        EntryValue.Value.Visible = false
-        EntryValue.Checkbox.Visible = true
+    local Handler = PropertyHandlers[Data.Datatype] or PropertyHandlers.default
+    Handler(Object, Entry, Data)
+end
 
-        local State = Object[Data.Name]
-        EntryValue.Checkbox:FindFirstChild("Enabled").Visible = State
+function ApplyProperty(Object, Data, Entry)
+    if Data.Write == false then
+        return
+    end
+    print("try apply")
+
+    local Writer = PropertyWriters[Data.Datatype]
+        or PropertyWriters.default
+
+    local Success, Error = pcall(function()
+        Writer(Object, Data, Entry)
+    end)
+
+    if not Success then
+        warn(Error)
+        UpdateProperty(Object, Entry, Data)
     end
 end
 
@@ -362,10 +683,16 @@ function RenderProperties()
     end
 
     local RawProperties = ReflectionService:GetPropertiesOfClass(LastObject.ClassName)
-    local Properties    = ParseProperties(RawProperties)
+    local ParsedProperties    = ParseProperties(RawProperties)
+
+    for Header, Props in ParsedProperties do
+        if not table.find(PriorityHeaders, Header) then
+            table.insert(PriorityHeaders, Header)
+        end
+    end
 
     for _, Header in PriorityHeaders do
-        local Props = Properties[Header]
+        local Props = ParsedProperties[Header]
         if not Props then
             continue
         end
@@ -397,15 +724,53 @@ function RenderProperties()
             NewEntry.LayoutOrder = NewHeader.LayoutOrder + Index
             NewEntry.EntryValue.Value.Text = if Data.Read == false then tostring(gethiddenproperty(LastObject, Data.Name)) else tostring(LastObject[Data.Name])
 
-            if #Data.Name >= 15 then
-                Data.Name = Data.Name:sub(1, 12) .. "..."
+            local function UpdateLength()
+                local MaxLen = (15 + math.round((Properties.UIAspectRatioConstraint.AspectRatio - 0.84) * 10))
+                if #Data.Name >= MaxLen then
+                    Data.TruncatedName = Data.Name:sub(1, MaxLen - 3) .. "..."
+                else
+                    Data.TruncatedName = nil
+                end
             end
+            UpdateLength()
 
-            NewEntry.EntryName.Value.Text = Data.Name
+            NewEntry.EntryName.Value.Text = Data.TruncatedName or Data.Name
             NewEntry.EntryName.Value.TextColor3 = Data.Write == true and NewEntry.EntryName.Value.TextColor3 or Color3.fromRGB(100, 100, 100)
             NewEntry.EntryValue.Value.TextColor3 = Data.Write == true and NewEntry.EntryValue.Value.TextColor3 or Color3.fromRGB(100, 100, 100)
 
             UpdateProperty(LastObject, NewEntry, Data)
+            PropertiesTrove:Add(LastObject:GetPropertyChangedSignal(Data.Name):Connect(function()
+                UpdateProperty(LastObject, NewEntry, Data)
+                RenderNodes()
+            end))
+            PropertiesTrove:Add(Properties.UIAspectRatioConstraint:GetPropertyChangedSignal("AspectRatio"):Connect(function()
+                UpdateLength()
+                NewEntry.EntryName.Value.Text = Data.TruncatedName or Data.Name
+            end))
+
+            if Data.Write ~= false then
+                if Data.Datatype == "boolean" then
+                    PropertiesTrove:Add(
+                        NewEntry.EntryValue.Checkbox.MouseButton1Click:Connect(function()
+                            local Enabled = NewEntry.EntryValue.Checkbox.Enabled
+                            Enabled.Visible = not Enabled.Visible
+
+                            ApplyProperty(LastObject, Data, NewEntry)
+                        end)
+                    )
+                else
+                    PropertiesTrove:Add(
+                        NewEntry.EntryValue.Value.FocusLost:Connect(function(EnterPressed)
+                            if not EnterPressed then
+                                UpdateProperty(LastObject, NewEntry, Data)
+                                return
+                            end
+
+                            ApplyProperty(LastObject, Data, NewEntry)
+                        end)
+                    )
+                end
+            end
 
             PropertiesTrove:Add(NewEntry)
             table.insert(HeaderItems, NewEntry)
@@ -540,7 +905,7 @@ Trove:Add(UserInputService.InputChanged:Connect(function(Input)
     local Delta = CurrentX - StartMouseX
 
     local NewRatio = StartRatio + (Delta / 350)
-    NewRatio = math.clamp(NewRatio, 1, 2)
+    NewRatio = math.clamp(NewRatio, 0.84, 2)
 
     if NewRatio == 1 or NewRatio == 2 then
         StartMouseX = CurrentX
